@@ -14,9 +14,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
       .getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
 
   public static void main(String[] args) {
-    LOG.info("STARTING THE APPLICATION");
     SpringApplication.run(BlueprintValidatorApplication.class, args);
-    LOG.info("APPLICATION FINISHED");
   }
 
   @Override
