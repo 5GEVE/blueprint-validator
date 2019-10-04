@@ -30,6 +30,14 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- Argument parser for Validator -->
+    <!-- https://mvnrepository.com/artifact/net.sourceforge.argparse4j/argparse4j -->
+    <dependency>
+      <groupId>net.sourceforge.argparse4j</groupId>
+      <artifactId>argparse4j</artifactId>
+      <version>0.8.1</version>
+    </dependency>
   </dependencies>
 
   <build>
