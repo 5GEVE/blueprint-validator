@@ -20,6 +20,8 @@ import javax.validation.Validation;
 import javax.validation.ValidationException;
 import javax.validation.ValidatorFactory;
 import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.impl.Arguments;
+import net.sourceforge.argparse4j.inf.ArgumentAction;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -53,6 +55,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         .defaultHelp(true)
         .description("Simple tool to validate blueprints for the 5G EVE platform.");
 
+    parser.addArgument("--debug").action(Arguments.storeTrue());
     parser.addArgument("-t", "--type").choices("vsb", "cb", "expb", "tstb").required(true)
         .help("Specify the type of blueprint you want to validate.");
     parser.addArgument("file").help("YAML blueprint file path");
