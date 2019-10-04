@@ -38,6 +38,20 @@
       <artifactId>argparse4j</artifactId>
       <version>0.8.1</version>
     </dependency>
+
+    <!-- https://github.com/nextworks-it/slicer-catalogue/tree/5geve-release -->
+    <dependency>
+      <groupId>it.nextworks.nfvmano</groupId>
+      <artifactId>EveBlueprintsIM</artifactId>
+      <version>0.0.2-SNAPSHOT</version>
+    </dependency>
+
+    <!-- https://github.com/nextworks-it/slicer-catalogue/tree/5geve-release -->
+    <dependency>
+      <groupId>it.nextworks.nfvmano</groupId>
+      <artifactId>VsBlueprintsIM</artifactId>
+      <version>0.0.2-EVE-SNAPSHOT</version>
+    </dependency>
   </dependencies>
 
   <build>
