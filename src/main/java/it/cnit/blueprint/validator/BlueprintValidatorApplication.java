@@ -47,7 +47,9 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
   private static javax.validation.Validator VALIDATOR;
 
   public static void main(String[] args) {
-    SpringApplication.run(BlueprintValidatorApplication.class, args);
+    SpringApplication app = new SpringApplication(BlueprintValidatorApplication.class);
+        app.setLogStartupInfo(false);
+        app.run(args);
   }
 
   private static Namespace parseArguments(String[] args) {
