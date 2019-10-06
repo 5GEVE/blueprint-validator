@@ -148,7 +148,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
     } catch (ValidationException e) {
       LOG.error("Validation failed");
     } catch (IOException e) {
-      LOG.error("Can't read input file", e);
+      LOG.error("Can't read input file {}", e.getMessage());
     }
   }
 }
