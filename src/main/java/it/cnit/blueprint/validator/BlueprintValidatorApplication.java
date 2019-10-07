@@ -2,8 +2,7 @@ package it.cnit.blueprint.validator;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.CtxBlueprint;
@@ -21,7 +20,6 @@ import javax.validation.ValidationException;
 import javax.validation.ValidatorFactory;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
-import net.sourceforge.argparse4j.inf.ArgumentAction;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -48,8 +46,8 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
 
   public static void main(String[] args) {
     SpringApplication app = new SpringApplication(BlueprintValidatorApplication.class);
-        app.setLogStartupInfo(false);
-        app.run(args);
+    app.setLogStartupInfo(false);
+    app.run(args);
   }
 
   private static Namespace parseArguments(String[] args) {
@@ -142,7 +140,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
           break;
       }
       LOG.info("Validation success");
-    } catch (UnrecognizedPropertyException | InvalidFormatException e) {
+    } catch (MismatchedInputException e) {
       LOG.error(e.getOriginalMessage());
       LOG.error("Error at line {}, column {} of YAML file", e.getLocation().getLineNr(),
           e.getLocation().getColumnNr());
