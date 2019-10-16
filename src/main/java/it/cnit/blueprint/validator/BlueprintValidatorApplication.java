@@ -80,6 +80,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
       }
       throw new ValidationException();
     }
+    LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(vsb));
   }
 
   private static void validateCtx(InputStream is) throws ValidationException, IOException {
@@ -91,28 +92,31 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
       }
       throw new ValidationException();
     }
+    LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(ctx));
   }
 
   private static void validateExpB(InputStream is) throws ValidationException, IOException {
-    ExpBlueprint expB = OBJECT_MAPPER.readValue(is, ExpBlueprint.class);
-    Set<ConstraintViolation<ExpBlueprint>> violations = VALIDATOR.validate(expB);
+    ExpBlueprint expb = OBJECT_MAPPER.readValue(is, ExpBlueprint.class);
+    Set<ConstraintViolation<ExpBlueprint>> violations = VALIDATOR.validate(expb);
     if (!violations.isEmpty()) {
       for (ConstraintViolation<ExpBlueprint> v : violations) {
         LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
       }
       throw new ValidationException();
     }
+    LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(expb));
   }
 
   private static void validateTcB(InputStream is) throws ValidationException, IOException {
-    TestCaseBlueprint tcB = OBJECT_MAPPER.readValue(is, TestCaseBlueprint.class);
-    Set<ConstraintViolation<TestCaseBlueprint>> violations = VALIDATOR.validate(tcB);
+    TestCaseBlueprint tcb = OBJECT_MAPPER.readValue(is, TestCaseBlueprint.class);
+    Set<ConstraintViolation<TestCaseBlueprint>> violations = VALIDATOR.validate(tcb);
     if (!violations.isEmpty()) {
       for (ConstraintViolation<TestCaseBlueprint> v : violations) {
         LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
       }
       throw new ValidationException();
     }
+    LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(tcb));
   }
 
   @Override
