@@ -7,6 +7,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.CtxBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.ExpBlueprint;
+import it.nextworks.nfvmano.catalogue.blueprint.elements.TestCaseBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.VsBlueprint;
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,7 +57,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         .description("Simple tool to validate blueprints for the 5G EVE platform.");
 
     parser.addArgument("--debug").action(Arguments.storeTrue());
-    parser.addArgument("-t", "--type").choices("vsb", "cb", "expb", "tstb").required(true)
+    parser.addArgument("-t", "--type").choices("vsb", "ctx", "expb", "tcb").required(true)
         .help("Specify the type of blueprint you want to validate.");
     parser.addArgument("file").help("YAML blueprint file path");
 
@@ -79,33 +80,43 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
       }
       throw new ValidationException();
     }
+    LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(vsb));
   }
 
-  private static void validateCB(InputStream is) throws ValidationException, IOException {
-    CtxBlueprint cb = OBJECT_MAPPER.readValue(is, CtxBlueprint.class);
-    Set<ConstraintViolation<CtxBlueprint>> violations = VALIDATOR.validate(cb);
+  private static void validateCtx(InputStream is) throws ValidationException, IOException {
+    CtxBlueprint ctx = OBJECT_MAPPER.readValue(is, CtxBlueprint.class);
+    Set<ConstraintViolation<CtxBlueprint>> violations = VALIDATOR.validate(ctx);
     if (!violations.isEmpty()) {
       for (ConstraintViolation<CtxBlueprint> v : violations) {
         LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
       }
       throw new ValidationException();
     }
+    LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(ctx));
   }
 
   private static void validateExpB(InputStream is) throws ValidationException, IOException {
-    ExpBlueprint expB = OBJECT_MAPPER.readValue(is, ExpBlueprint.class);
-    Set<ConstraintViolation<ExpBlueprint>> violations = VALIDATOR.validate(expB);
+    ExpBlueprint expb = OBJECT_MAPPER.readValue(is, ExpBlueprint.class);
+    Set<ConstraintViolation<ExpBlueprint>> violations = VALIDATOR.validate(expb);
     if (!violations.isEmpty()) {
       for (ConstraintViolation<ExpBlueprint> v : violations) {
         LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
       }
       throw new ValidationException();
     }
+    LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(expb));
   }
 
-  private static void validateTstB(InputStream is) throws ValidationException, IOException {
-    LOG.warn("Not implemented");
-    throw new ValidationException();
+  private static void validateTcB(InputStream is) throws ValidationException, IOException {
+    TestCaseBlueprint tcb = OBJECT_MAPPER.readValue(is, TestCaseBlueprint.class);
+    Set<ConstraintViolation<TestCaseBlueprint>> violations = VALIDATOR.validate(tcb);
+    if (!violations.isEmpty()) {
+      for (ConstraintViolation<TestCaseBlueprint> v : violations) {
+        LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
+      }
+      throw new ValidationException();
+    }
+    LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(tcb));
   }
 
   @Override
@@ -126,17 +137,17 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
           LOG.info("Selected type: Vertical Service Blueprint");
           validateVSB(is);
           break;
-        case "cb":
+        case "ctx":
           LOG.info("Selected type: Context Blueprint");
-          validateCB(is);
+          validateCtx(is);
           break;
         case "expb":
           LOG.info("Selected type: Experiment Blueprint");
           validateExpB(is);
           break;
-        case "tstb":
-          LOG.info("Selected type: Test Blueprint");
-          validateTstB(is);
+        case "tcb":
+          LOG.info("Selected type: Test Case Blueprint");
+          validateTcB(is);
           break;
       }
       LOG.info("Validation success");
