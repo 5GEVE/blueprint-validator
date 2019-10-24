@@ -9,6 +9,7 @@ import it.nextworks.nfvmano.catalogue.blueprint.elements.CtxBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.ExpBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.TestCaseBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.VsBlueprint;
+import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
@@ -71,7 +72,8 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
     return ns;
   }
 
-  private static void validateVSB(InputStream is) throws ValidationException, IOException {
+  private static void validateVSB(InputStream is)
+      throws ValidationException, IOException, MalformattedElementException {
     VsBlueprint vsb = OBJECT_MAPPER.readValue(is, VsBlueprint.class);
     Set<ConstraintViolation<VsBlueprint>> violations = VALIDATOR.validate(vsb);
     if (!violations.isEmpty()) {
@@ -80,10 +82,12 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
       }
       throw new ValidationException();
     }
+    vsb.isValid();
     LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(vsb));
   }
 
-  private static void validateCtx(InputStream is) throws ValidationException, IOException {
+  private static void validateCtx(InputStream is)
+      throws ValidationException, IOException, MalformattedElementException {
     CtxBlueprint ctx = OBJECT_MAPPER.readValue(is, CtxBlueprint.class);
     Set<ConstraintViolation<CtxBlueprint>> violations = VALIDATOR.validate(ctx);
     if (!violations.isEmpty()) {
@@ -92,10 +96,12 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
       }
       throw new ValidationException();
     }
+    ctx.isValid();
     LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(ctx));
   }
 
-  private static void validateExpB(InputStream is) throws ValidationException, IOException {
+  private static void validateExpB(InputStream is)
+      throws ValidationException, IOException, MalformattedElementException {
     ExpBlueprint expb = OBJECT_MAPPER.readValue(is, ExpBlueprint.class);
     Set<ConstraintViolation<ExpBlueprint>> violations = VALIDATOR.validate(expb);
     if (!violations.isEmpty()) {
@@ -104,10 +110,12 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
       }
       throw new ValidationException();
     }
+    expb.isValid();
     LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(expb));
   }
 
-  private static void validateTcB(InputStream is) throws ValidationException, IOException {
+  private static void validateTcB(InputStream is)
+      throws ValidationException, IOException, MalformattedElementException {
     TestCaseBlueprint tcb = OBJECT_MAPPER.readValue(is, TestCaseBlueprint.class);
     Set<ConstraintViolation<TestCaseBlueprint>> violations = VALIDATOR.validate(tcb);
     if (!violations.isEmpty()) {
@@ -116,6 +124,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
       }
       throw new ValidationException();
     }
+    tcb.isValid();
     LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(tcb));
   }
 
@@ -156,7 +165,8 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
       LOG.error("Error at line {}, column {} of YAML file", e.getLocation().getLineNr(),
           e.getLocation().getColumnNr());
       LOG.error("Validation failed");
-    } catch (ValidationException e) {
+    } catch (ValidationException | MalformattedElementException e) {
+      LOG.error(e.getMessage());
       LOG.error("Validation failed");
     } catch (IOException e) {
       LOG.error("Can't read input file {}", e.getMessage());
