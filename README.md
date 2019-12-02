@@ -19,5 +19,6 @@ java -jar validator-VERSION.jar --type vsb ./vsb_asti_agv.yaml
 
 ### Blueprint examples in YAML
 
-Some blueprint examples are provided in [blueprint-yaml](link-coming-soon).
+Some blueprint examples are provided here:
+[blueprint-yaml](https://github.com/5GEVE/blueprint-yaml).
 
