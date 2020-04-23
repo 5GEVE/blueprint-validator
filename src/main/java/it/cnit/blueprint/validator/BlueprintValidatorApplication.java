@@ -1,11 +1,15 @@
 package it.cnit.blueprint.validator;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
-import it.nextworks.nfvmano.catalogue.blueprint.elements.*;
+import it.nextworks.nfvmano.catalogue.blueprint.elements.CtxBlueprint;
+import it.nextworks.nfvmano.catalogue.blueprint.elements.ExpBlueprint;
+import it.nextworks.nfvmano.catalogue.blueprint.elements.TestCaseBlueprint;
+import it.nextworks.nfvmano.catalogue.blueprint.elements.VsBlueprint;
 import it.nextworks.nfvmano.libs.ifa.common.DescriptorInformationElement;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import net.sourceforge.argparse4j.ArgumentParsers;
@@ -24,7 +28,6 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
-import javax.validation.ValidationException;
 import javax.validation.ValidatorFactory;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,21 +75,18 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
     }
 
     private static <T extends DescriptorInformationElement> void validate(InputStream is, Class<T> cls)
-            throws ValidationException, IOException, MalformattedElementException {
+            throws IOException, ViolationException, MalformattedElementException {
         T b = OBJECT_MAPPER.readValue(is, cls);
+        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(b));
         Set<ConstraintViolation<T>> violations = VALIDATOR.validate(b);
         if (!violations.isEmpty()) {
-            for (ConstraintViolation<T> v : violations) {
-                LOG.error("Violation: property '{}' {}", v.getPropertyPath(), v.getMessage());
-            }
-            throw new ValidationException();
+            throw new ViolationException(violations);
         }
         b.isValid();
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(b));
     }
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         YAMLFactory yamlFactory = new YAMLFactory();
         yamlFactory.configure(Feature.SPLIT_LINES, false);
         OBJECT_MAPPER = new ObjectMapper(yamlFactory);
@@ -117,14 +117,16 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
                     break;
             }
             LOG.info("Validation success");
-        } catch (MismatchedInputException e) {
+        } catch (JsonParseException | JsonMappingException e) {
             LOG.error(e.getOriginalMessage());
             LOG.error("Error at line {}, column {} of YAML file", e.getLocation().getLineNr(),
                     e.getLocation().getColumnNr());
-            LOG.error("Validation failed");
-        } catch (ValidationException | MalformattedElementException e) {
+        } catch (ViolationException e) {
+            for (String v : e.getViolationMessages()) {
+                LOG.error(v);
+            }
+        } catch (MalformattedElementException e) {
             LOG.error(e.getMessage());
-            LOG.error("Validation failed");
         } catch (IOException e) {
             LOG.error("Can't read input file {}", e.getMessage());
         }
