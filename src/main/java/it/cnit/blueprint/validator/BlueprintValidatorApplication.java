@@ -79,7 +79,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Set<ConstraintViolation<VsBlueprint>> violations = VALIDATOR.validate(vsb);
         if (!violations.isEmpty()) {
             for (ConstraintViolation<VsBlueprint> v : violations) {
-                LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
+                LOG.error("Violation: property '{}' {}", v.getPropertyPath(), v.getMessage());
             }
             throw new ValidationException();
         }
@@ -93,7 +93,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Set<ConstraintViolation<CtxBlueprint>> violations = VALIDATOR.validate(ctx);
         if (!violations.isEmpty()) {
             for (ConstraintViolation<CtxBlueprint> v : violations) {
-                LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
+                LOG.error("Violation: property '{}' {}", v.getPropertyPath(), v.getMessage());
             }
             throw new ValidationException();
         }
@@ -107,7 +107,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Set<ConstraintViolation<ExpBlueprint>> violations = VALIDATOR.validate(expb);
         if (!violations.isEmpty()) {
             for (ConstraintViolation<ExpBlueprint> v : violations) {
-                LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
+                LOG.error("Violation: property '{}' {}", v.getPropertyPath(), v.getMessage());
             }
             throw new ValidationException();
         }
@@ -121,7 +121,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Set<ConstraintViolation<TestCaseBlueprint>> violations = VALIDATOR.validate(tcb);
         if (!violations.isEmpty()) {
             for (ConstraintViolation<TestCaseBlueprint> v : violations) {
-                LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
+                LOG.error("Violation: property '{}' {}", v.getPropertyPath(), v.getMessage());
             }
             throw new ValidationException();
         }
