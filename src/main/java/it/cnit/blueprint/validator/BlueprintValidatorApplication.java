@@ -5,10 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
-import it.nextworks.nfvmano.catalogue.blueprint.elements.CtxBlueprint;
-import it.nextworks.nfvmano.catalogue.blueprint.elements.ExpBlueprint;
-import it.nextworks.nfvmano.catalogue.blueprint.elements.TestCaseBlueprint;
-import it.nextworks.nfvmano.catalogue.blueprint.elements.VsBlueprint;
+import it.nextworks.nfvmano.catalogue.blueprint.elements.*;
+import it.nextworks.nfvmano.libs.ifa.common.DescriptorInformationElement;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
@@ -73,60 +71,18 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         return ns;
     }
 
-    private static void validateVSB(InputStream is)
+    private static <T extends DescriptorInformationElement> void validate(InputStream is, Class<T> cls)
             throws ValidationException, IOException, MalformattedElementException {
-        VsBlueprint vsb = OBJECT_MAPPER.readValue(is, VsBlueprint.class);
-        Set<ConstraintViolation<VsBlueprint>> violations = VALIDATOR.validate(vsb);
+        T b = OBJECT_MAPPER.readValue(is, cls);
+        Set<ConstraintViolation<T>> violations = VALIDATOR.validate(b);
         if (!violations.isEmpty()) {
-            for (ConstraintViolation<VsBlueprint> v : violations) {
+            for (ConstraintViolation<T> v : violations) {
                 LOG.error("Violation: property '{}' {}", v.getPropertyPath(), v.getMessage());
             }
             throw new ValidationException();
         }
-        vsb.isValid();
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(vsb));
-    }
-
-    private static void validateCtx(InputStream is)
-            throws ValidationException, IOException, MalformattedElementException {
-        CtxBlueprint ctx = OBJECT_MAPPER.readValue(is, CtxBlueprint.class);
-        Set<ConstraintViolation<CtxBlueprint>> violations = VALIDATOR.validate(ctx);
-        if (!violations.isEmpty()) {
-            for (ConstraintViolation<CtxBlueprint> v : violations) {
-                LOG.error("Violation: property '{}' {}", v.getPropertyPath(), v.getMessage());
-            }
-            throw new ValidationException();
-        }
-        ctx.isValid();
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(ctx));
-    }
-
-    private static void validateExpB(InputStream is)
-            throws ValidationException, IOException, MalformattedElementException {
-        ExpBlueprint expb = OBJECT_MAPPER.readValue(is, ExpBlueprint.class);
-        Set<ConstraintViolation<ExpBlueprint>> violations = VALIDATOR.validate(expb);
-        if (!violations.isEmpty()) {
-            for (ConstraintViolation<ExpBlueprint> v : violations) {
-                LOG.error("Violation: property '{}' {}", v.getPropertyPath(), v.getMessage());
-            }
-            throw new ValidationException();
-        }
-        expb.isValid();
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(expb));
-    }
-
-    private static void validateTcB(InputStream is)
-            throws ValidationException, IOException, MalformattedElementException {
-        TestCaseBlueprint tcb = OBJECT_MAPPER.readValue(is, TestCaseBlueprint.class);
-        Set<ConstraintViolation<TestCaseBlueprint>> violations = VALIDATOR.validate(tcb);
-        if (!violations.isEmpty()) {
-            for (ConstraintViolation<TestCaseBlueprint> v : violations) {
-                LOG.error("Violation: property '{}' {}", v.getPropertyPath(), v.getMessage());
-            }
-            throw new ValidationException();
-        }
-        tcb.isValid();
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(tcb));
+        b.isValid();
+        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(b));
     }
 
     @Override
@@ -145,19 +101,19 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
             switch (ns.getString("type")) {
                 case "vsb":
                     LOG.info("Selected type: Vertical Service Blueprint");
-                    validateVSB(is);
+                    validate(is, VsBlueprint.class);
                     break;
                 case "ctx":
                     LOG.info("Selected type: Context Blueprint");
-                    validateCtx(is);
+                    validate(is, CtxBlueprint.class);
                     break;
                 case "expb":
                     LOG.info("Selected type: Experiment Blueprint");
-                    validateExpB(is);
+                    validate(is, ExpBlueprint.class);
                     break;
                 case "tcb":
                     LOG.info("Selected type: Test Case Blueprint");
-                    validateTcB(is);
+                    validate(is, TestCaseBlueprint.class);
                     break;
             }
             LOG.info("Validation success");
