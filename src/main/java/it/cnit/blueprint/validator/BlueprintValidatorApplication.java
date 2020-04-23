@@ -42,6 +42,12 @@ import java.util.Set;
         HibernateJpaAutoConfiguration.class
 })
 public class BlueprintValidatorApplication implements CommandLineRunner {
+    enum TYPE {
+        vsb,
+        ctx,
+        expb,
+        tcb
+    }
 
     private static final Logger LOG = LoggerFactory
             .getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
@@ -60,7 +66,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
                 .description("Simple tool to validate blueprints for the 5G EVE platform.");
 
         parser.addArgument("--debug").action(Arguments.storeTrue());
-        parser.addArgument("-t", "--type").choices("vsb", "ctx", "expb", "tcb").required(true)
+        parser.addArgument("-t", "--type").type(TYPE.class).required(true)
                 .help("Specify the type of blueprint you want to validate.");
         parser.addArgument("file").help("YAML blueprint file path");
 
@@ -98,20 +104,20 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Namespace ns = parseArguments(args);
         LOG.info("Validating file {}", ns.getString("file"));
         try (InputStream is = Files.newInputStream(Paths.get(ns.getString("file")))) {
-            switch (ns.getString("type")) {
-                case "vsb":
+            switch ((TYPE)ns.get("type")) {
+                case vsb:
                     LOG.info("Selected type: Vertical Service Blueprint");
                     validate(is, VsBlueprint.class);
                     break;
-                case "ctx":
+                case ctx:
                     LOG.info("Selected type: Context Blueprint");
                     validate(is, CtxBlueprint.class);
                     break;
-                case "expb":
+                case expb:
                     LOG.info("Selected type: Experiment Blueprint");
                     validate(is, ExpBlueprint.class);
                     break;
-                case "tcb":
+                case tcb:
                     LOG.info("Selected type: Test Case Blueprint");
                     validate(is, TestCaseBlueprint.class);
                     break;
