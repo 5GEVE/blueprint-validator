@@ -80,6 +80,14 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         return ns;
     }
 
+    /**
+     * @param is  inputstream containing the blueprint to be validated
+     * @param cls the specific blueprint class to use for validation (e.g. VsBlueprint.class)
+     * @param <T> The type of the class to be validated
+     * @throws IOException                  if Jackson fails to deserialize the blueprint; it can be JsonParseException or JsonMappingException
+     * @throws ViolationException           if javax.validation fails
+     * @throws MalformattedElementException if call to isValid() fails
+     */
     private static <T extends DescriptorInformationElement> void validate(InputStream is, Class<T> cls)
             throws IOException, ViolationException, MalformattedElementException {
         T b = OBJECT_MAPPER.readValue(is, cls);
@@ -104,7 +112,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Namespace ns = parseArguments(args);
         LOG.info("Validating file {}", ns.getString("file"));
         try (InputStream is = Files.newInputStream(Paths.get(ns.getString("file")))) {
-            switch ((TYPE)ns.get("type")) {
+            switch ((TYPE) ns.get("type")) {
                 case vsb:
                     LOG.info("Selected type: Vertical Service Blueprint");
                     validate(is, VsBlueprint.class);
