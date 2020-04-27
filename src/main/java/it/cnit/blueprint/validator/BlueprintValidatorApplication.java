@@ -31,10 +31,8 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.ValidatorFactory;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -73,7 +71,9 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         parser.addArgument("--debug").action(Arguments.storeTrue());
         parser.addArgument("-t", "--type").type(TYPE.class).required(true)
                 .help("Specify the type of blueprint you want to validate.");
-        parser.addArgument("file").help("YAML blueprint file path");
+        parser.addArgument("-f", "--file").help("YAML blueprint file path");
+        parser.addArgument("-s", "--schema").action(Arguments.storeTrue())
+                .help("Generate JSON schema for the selected type (ignore file)");
 
         Namespace ns = null;
         try {
