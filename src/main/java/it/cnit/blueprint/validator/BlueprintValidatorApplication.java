@@ -110,10 +110,8 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        YAMLFactory yamlFactory = new YAMLFactory();
-        yamlFactory.configure(Feature.SPLIT_LINES, false);
-        Y_OBJECT_MAPPER = new ObjectMapper(yamlFactory);
-        Y_OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+        Y_OBJECT_MAPPER = new ObjectMapper(new YAMLFactory().configure(Feature.SPLIT_LINES, false))
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
         J_OBJECT_MAPPER = new ObjectMapper(new JsonFactory()).enable(SerializationFeature.INDENT_OUTPUT);
         ;
 
