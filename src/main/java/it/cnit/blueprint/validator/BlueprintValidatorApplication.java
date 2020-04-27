@@ -68,7 +68,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
     private static Namespace parseArguments(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("validator").build()
                 .defaultHelp(true)
-                .description("Simple tool to validate blueprints for the 5G EVE platform.");
+                .description("Simple tool to validate blueprints and NSD for the 5G EVE platform.");
 
         parser.addArgument("--debug").action(Arguments.storeTrue());
         parser.addArgument("-t", "--type").type(TYPE.class).required(true)
@@ -86,7 +86,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
     }
 
     /**
-     * @param s  string containing the blueprint to be validated
+     * @param s   string containing the blueprint to be validated
      * @param cls the specific blueprint class to use for validation (e.g. VsBlueprint.class)
      * @param <T> The type of the class to be validated
      * @throws IOException                  if Jackson fails to deserialize the blueprint; it can be JsonParseException or JsonMappingException
@@ -144,8 +144,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
             LOG.info("Validation success");
         } catch (JsonParseException | JsonMappingException e) {
             LOG.error(e.getOriginalMessage());
-            LOG.error("Error at line {}, column {} of YAML file", e.getLocation().getLineNr(),
-                    e.getLocation().getColumnNr());
+            LOG.error("Error at line {}, column {}", e.getLocation().getLineNr(), e.getLocation().getColumnNr());
         } catch (ViolationException e) {
             for (String v : e.getViolationMessages()) {
                 LOG.error(v);
