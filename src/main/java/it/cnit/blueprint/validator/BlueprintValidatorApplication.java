@@ -113,7 +113,6 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Y_OBJECT_MAPPER = new ObjectMapper(new YAMLFactory().configure(Feature.SPLIT_LINES, false))
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
         J_OBJECT_MAPPER = new ObjectMapper(new JsonFactory()).enable(SerializationFeature.INDENT_OUTPUT);
-        ;
 
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         VALIDATOR = factory.getValidator();
@@ -143,7 +142,6 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
                     LOG.info("Selected type: Network Service Descriptor");
                     validate(rootNode.get(0).toString(), Nsd.class, ns.getBoolean("schema"));
                     break;
-
             }
             LOG.info("Validation success");
         } catch (JsonParseException | JsonMappingException e) {
