@@ -12,6 +12,7 @@ import it.nextworks.nfvmano.catalogue.blueprint.elements.TestCaseBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.VsBlueprint;
 import it.nextworks.nfvmano.libs.ifa.common.DescriptorInformationElement;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
+import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -29,8 +30,10 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.ValidatorFactory;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -46,7 +49,8 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         vsb,
         ctx,
         expb,
-        tcb
+        tcb,
+        nsd
     }
 
     private static final Logger LOG = LoggerFactory
@@ -129,6 +133,31 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
                     LOG.info("Selected type: Test Case Blueprint");
                     validate(is, TestCaseBlueprint.class);
                     break;
+                case nsd:
+                    LOG.info("Selected type: Network Service Descriptor");
+                    boolean collection = false;
+                    char prev = '*';
+                    int i;
+                    while (!collection) {
+                        i = is.read();
+                        char curr = (char) i;
+                        if (prev == '-' && curr == ' ') {
+                            collection = true;
+                        }
+                        else {
+                            prev = curr;
+                        }
+                    }
+//                    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+//                    StringBuffer sb = new StringBuffer();
+//                    String str;
+//                    while((str = reader.readLine())!= null){
+//                        sb.append(str);
+//                    }
+//                    LOG.debug(sb.toString());
+                    validate(is, Nsd.class);
+                    break;
+
             }
             LOG.info("Validation success");
         } catch (JsonParseException | JsonMappingException e) {
