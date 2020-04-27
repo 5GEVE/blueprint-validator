@@ -3,6 +3,7 @@ package it.cnit.blueprint.validator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
@@ -12,6 +13,7 @@ import it.nextworks.nfvmano.catalogue.blueprint.elements.TestCaseBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.VsBlueprint;
 import it.nextworks.nfvmano.libs.ifa.common.DescriptorInformationElement;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
+import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -29,8 +31,10 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.ValidatorFactory;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -46,7 +50,8 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         vsb,
         ctx,
         expb,
-        tcb
+        tcb,
+        nsd
     }
 
     private static final Logger LOG = LoggerFactory
@@ -81,16 +86,16 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
     }
 
     /**
-     * @param is  inputstream containing the blueprint to be validated
+     * @param s  string containing the blueprint to be validated
      * @param cls the specific blueprint class to use for validation (e.g. VsBlueprint.class)
      * @param <T> The type of the class to be validated
      * @throws IOException                  if Jackson fails to deserialize the blueprint; it can be JsonParseException or JsonMappingException
      * @throws ViolationException           if javax.validation fails
      * @throws MalformattedElementException if call to isValid() fails
      */
-    private static <T extends DescriptorInformationElement> void validate(InputStream is, Class<T> cls)
+    private static <T extends DescriptorInformationElement> void validate(String s, Class<T> cls)
             throws IOException, ViolationException, MalformattedElementException {
-        T b = OBJECT_MAPPER.readValue(is, cls);
+        T b = OBJECT_MAPPER.readValue(s, cls);
         LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(b));
         Set<ConstraintViolation<T>> violations = VALIDATOR.validate(b);
         if (!violations.isEmpty()) {
@@ -112,23 +117,29 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Namespace ns = parseArguments(args);
         LOG.info("Validating file {}", ns.getString("file"));
         try (InputStream is = Files.newInputStream(Paths.get(ns.getString("file")))) {
+            JsonNode rootNode = OBJECT_MAPPER.readTree(is);
             switch ((TYPE) ns.get("type")) {
                 case vsb:
                     LOG.info("Selected type: Vertical Service Blueprint");
-                    validate(is, VsBlueprint.class);
+                    validate(rootNode.toString(), VsBlueprint.class);
                     break;
                 case ctx:
                     LOG.info("Selected type: Context Blueprint");
-                    validate(is, CtxBlueprint.class);
+                    validate(rootNode.toString(), CtxBlueprint.class);
                     break;
                 case expb:
                     LOG.info("Selected type: Experiment Blueprint");
-                    validate(is, ExpBlueprint.class);
+                    validate(rootNode.toString(), ExpBlueprint.class);
                     break;
                 case tcb:
                     LOG.info("Selected type: Test Case Blueprint");
-                    validate(is, TestCaseBlueprint.class);
+                    validate(rootNode.toString(), TestCaseBlueprint.class);
                     break;
+                case nsd:
+                    LOG.info("Selected type: Network Service Descriptor");
+                    validate(rootNode.get(0).toString(), Nsd.class);
+                    break;
+
             }
             LOG.info("Validation success");
         } catch (JsonParseException | JsonMappingException e) {
