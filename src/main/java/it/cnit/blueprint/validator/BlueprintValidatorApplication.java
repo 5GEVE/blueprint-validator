@@ -72,7 +72,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         parser.addArgument("--debug").action(Arguments.storeTrue());
         parser.addArgument("-t", "--type").type(TYPE.class).required(true)
                 .help("Specify the type of blueprint you want to validate.");
-        MutuallyExclusiveGroup group = parser.addMutuallyExclusiveGroup();
+        MutuallyExclusiveGroup group = parser.addMutuallyExclusiveGroup().required(true);
         group.addArgument("-f", "--file").help("YAML blueprint file path");
         group.addArgument("-s", "--schema").action(Arguments.storeTrue())
                 .help("Generate JSON schema for the selected type (ignore file)");
