@@ -18,6 +18,7 @@ import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.MutuallyExclusiveGroup;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,8 +72,9 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         parser.addArgument("--debug").action(Arguments.storeTrue());
         parser.addArgument("-t", "--type").type(TYPE.class).required(true)
                 .help("Specify the type of blueprint you want to validate.");
-        parser.addArgument("-f", "--file").help("YAML blueprint file path");
-        parser.addArgument("-s", "--schema").action(Arguments.storeTrue())
+        MutuallyExclusiveGroup group = parser.addMutuallyExclusiveGroup();
+        group.addArgument("-f", "--file").help("YAML blueprint file path");
+        group.addArgument("-s", "--schema").action(Arguments.storeTrue())
                 .help("Generate JSON schema for the selected type (ignore file)");
 
         Namespace ns = null;
