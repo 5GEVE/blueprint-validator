@@ -1,12 +1,11 @@
 package it.cnit.blueprint.validator;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
+import com.fasterxml.jackson.module.jsonSchema.JsonSchemaGenerator;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.CtxBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.ExpBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.TestCaseBlueprint;
@@ -18,7 +17,6 @@ import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
-import net.sourceforge.argparse4j.inf.MutuallyExclusiveGroup;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +53,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
-    private static ObjectMapper OBJECT_MAPPER;
+    private static ObjectMapper Y_OBJECT_MAPPER, J_OBJECT_MAPPER;
     private static javax.validation.Validator VALIDATOR;
 
     public static void main(String[] args) {
@@ -72,10 +70,9 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         parser.addArgument("--debug").action(Arguments.storeTrue());
         parser.addArgument("-t", "--type").type(TYPE.class).required(true)
                 .help("Specify the type of blueprint you want to validate.");
-        MutuallyExclusiveGroup group = parser.addMutuallyExclusiveGroup().required(true);
-        group.addArgument("-f", "--file").help("YAML blueprint file path");
-        group.addArgument("-s", "--schema").action(Arguments.storeTrue())
-                .help("Generate JSON schema for the selected type (ignore file)");
+        parser.addArgument("-s", "--schema").action(Arguments.storeTrue())
+                .help("Also generate JSON schema for the selected type");
+        parser.addArgument("file").help("YAML blueprint file path");
 
         Namespace ns = null;
         try {
@@ -88,17 +85,22 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
     }
 
     /**
-     * @param s   string containing the blueprint to be validated
-     * @param cls the specific blueprint class to use for validation (e.g. VsBlueprint.class)
-     * @param <T> The type of the class to be validated
+     * @param s      string containing the blueprint to be validated
+     * @param cls    the specific blueprint class to use for validation (e.g. VsBlueprint.class)
+     * @param schema if true, generate JSON schema for cls
+     * @param <T>    The type of the class to be validated
      * @throws IOException                  if Jackson fails to deserialize the blueprint; it can be JsonParseException or JsonMappingException
      * @throws ViolationException           if javax.validation fails
      * @throws MalformattedElementException if call to isValid() fails
      */
-    private static <T extends DescriptorInformationElement> void validate(String s, Class<T> cls)
+    private static <T extends DescriptorInformationElement> void validate(String s, Class<T> cls, boolean schema)
             throws IOException, ViolationException, MalformattedElementException {
-        T b = OBJECT_MAPPER.readValue(s, cls);
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(b));
+        if (schema) {
+            LOG.info("Schema:\n{}",
+                    J_OBJECT_MAPPER.writeValueAsString(new JsonSchemaGenerator(J_OBJECT_MAPPER).generateSchema(cls)));
+        }
+        T b = Y_OBJECT_MAPPER.readValue(s, cls);
+        LOG.debug("Dump:\n{}", Y_OBJECT_MAPPER.writeValueAsString(b));
         Set<ConstraintViolation<T>> violations = VALIDATOR.validate(b);
         if (!violations.isEmpty()) {
             throw new ViolationException(violations);
@@ -110,8 +112,10 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
     public void run(String... args) {
         YAMLFactory yamlFactory = new YAMLFactory();
         yamlFactory.configure(Feature.SPLIT_LINES, false);
-        OBJECT_MAPPER = new ObjectMapper(yamlFactory);
-        OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+        Y_OBJECT_MAPPER = new ObjectMapper(yamlFactory);
+        Y_OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+        J_OBJECT_MAPPER = new ObjectMapper(new JsonFactory()).enable(SerializationFeature.INDENT_OUTPUT);
+        ;
 
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         VALIDATOR = factory.getValidator();
@@ -119,27 +123,27 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Namespace ns = parseArguments(args);
         LOG.info("Validating file {}", ns.getString("file"));
         try (InputStream is = Files.newInputStream(Paths.get(ns.getString("file")))) {
-            JsonNode rootNode = OBJECT_MAPPER.readTree(is);
+            JsonNode rootNode = Y_OBJECT_MAPPER.readTree(is);
             switch ((TYPE) ns.get("type")) {
                 case vsb:
                     LOG.info("Selected type: Vertical Service Blueprint");
-                    validate(rootNode.toString(), VsBlueprint.class);
+                    validate(rootNode.toString(), VsBlueprint.class, ns.getBoolean("schema"));
                     break;
                 case ctx:
                     LOG.info("Selected type: Context Blueprint");
-                    validate(rootNode.toString(), CtxBlueprint.class);
+                    validate(rootNode.toString(), CtxBlueprint.class, ns.getBoolean("schema"));
                     break;
                 case expb:
                     LOG.info("Selected type: Experiment Blueprint");
-                    validate(rootNode.toString(), ExpBlueprint.class);
+                    validate(rootNode.toString(), ExpBlueprint.class, ns.getBoolean("schema"));
                     break;
                 case tcb:
                     LOG.info("Selected type: Test Case Blueprint");
-                    validate(rootNode.toString(), TestCaseBlueprint.class);
+                    validate(rootNode.toString(), TestCaseBlueprint.class, ns.getBoolean("schema"));
                     break;
                 case nsd:
                     LOG.info("Selected type: Network Service Descriptor");
-                    validate(rootNode.get(0).toString(), Nsd.class);
+                    validate(rootNode.get(0).toString(), Nsd.class, ns.getBoolean("schema"));
                     break;
 
             }
