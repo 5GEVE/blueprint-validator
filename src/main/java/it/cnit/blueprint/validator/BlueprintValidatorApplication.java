@@ -1,15 +1,18 @@
 package it.cnit.blueprint.validator;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
+import com.fasterxml.jackson.module.jsonSchema.JsonSchemaGenerator;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.CtxBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.ExpBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.TestCaseBlueprint;
 import it.nextworks.nfvmano.catalogue.blueprint.elements.VsBlueprint;
+import it.nextworks.nfvmano.libs.ifa.common.DescriptorInformationElement;
 import it.nextworks.nfvmano.libs.ifa.common.exceptions.MalformattedElementException;
+import it.nextworks.nfvmano.libs.ifa.descriptors.nsd.Nsd;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -26,7 +29,6 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
-import javax.validation.ValidationException;
 import javax.validation.ValidatorFactory;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,10 +43,17 @@ import java.util.Set;
         HibernateJpaAutoConfiguration.class
 })
 public class BlueprintValidatorApplication implements CommandLineRunner {
+    enum TYPE {
+        vsb,
+        ctx,
+        expb,
+        tcb,
+        nsd
+    }
 
     private static final Logger LOG = LoggerFactory
             .getLogger(MethodHandles.lookup().lookupClass().getSimpleName());
-    private static ObjectMapper OBJECT_MAPPER;
+    private static ObjectMapper Y_OBJECT_MAPPER, J_OBJECT_MAPPER;
     private static javax.validation.Validator VALIDATOR;
 
     public static void main(String[] args) {
@@ -56,11 +65,13 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
     private static Namespace parseArguments(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("validator").build()
                 .defaultHelp(true)
-                .description("Simple tool to validate blueprints for the 5G EVE platform.");
+                .description("Simple tool to validate blueprints and NSD for the 5G EVE platform.");
 
         parser.addArgument("--debug").action(Arguments.storeTrue());
-        parser.addArgument("-t", "--type").choices("vsb", "ctx", "expb", "tcb").required(true)
+        parser.addArgument("-t", "--type").type(TYPE.class).required(true)
                 .help("Specify the type of blueprint you want to validate.");
+        parser.addArgument("-s", "--schema").action(Arguments.storeTrue())
+                .help("Also generate JSON schema for the selected type");
         parser.addArgument("file").help("YAML blueprint file path");
 
         Namespace ns = null;
@@ -73,68 +84,35 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         return ns;
     }
 
-    private static void validateVSB(InputStream is)
-            throws ValidationException, IOException, MalformattedElementException {
-        VsBlueprint vsb = OBJECT_MAPPER.readValue(is, VsBlueprint.class);
-        Set<ConstraintViolation<VsBlueprint>> violations = VALIDATOR.validate(vsb);
-        if (!violations.isEmpty()) {
-            for (ConstraintViolation<VsBlueprint> v : violations) {
-                LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
-            }
-            throw new ValidationException();
+    /**
+     * @param s      string containing the blueprint to be validated
+     * @param cls    the specific blueprint class to use for validation (e.g. VsBlueprint.class)
+     * @param schema if true, generate JSON schema for cls
+     * @param <T>    The type of the class to be validated
+     * @throws IOException                  if Jackson fails to deserialize the blueprint; it can be JsonParseException or JsonMappingException
+     * @throws ViolationException           if javax.validation fails
+     * @throws MalformattedElementException if call to isValid() fails
+     */
+    private static <T extends DescriptorInformationElement> void validate(String s, Class<T> cls, boolean schema)
+            throws IOException, ViolationException, MalformattedElementException {
+        if (schema) {
+            LOG.info("Schema:\n{}",
+                    J_OBJECT_MAPPER.writeValueAsString(new JsonSchemaGenerator(J_OBJECT_MAPPER).generateSchema(cls)));
         }
-        vsb.isValid();
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(vsb));
-    }
-
-    private static void validateCtx(InputStream is)
-            throws ValidationException, IOException, MalformattedElementException {
-        CtxBlueprint ctx = OBJECT_MAPPER.readValue(is, CtxBlueprint.class);
-        Set<ConstraintViolation<CtxBlueprint>> violations = VALIDATOR.validate(ctx);
+        T b = Y_OBJECT_MAPPER.readValue(s, cls);
+        LOG.debug("Dump:\n{}", Y_OBJECT_MAPPER.writeValueAsString(b));
+        Set<ConstraintViolation<T>> violations = VALIDATOR.validate(b);
         if (!violations.isEmpty()) {
-            for (ConstraintViolation<CtxBlueprint> v : violations) {
-                LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
-            }
-            throw new ValidationException();
+            throw new ViolationException(violations);
         }
-        ctx.isValid();
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(ctx));
-    }
-
-    private static void validateExpB(InputStream is)
-            throws ValidationException, IOException, MalformattedElementException {
-        ExpBlueprint expb = OBJECT_MAPPER.readValue(is, ExpBlueprint.class);
-        Set<ConstraintViolation<ExpBlueprint>> violations = VALIDATOR.validate(expb);
-        if (!violations.isEmpty()) {
-            for (ConstraintViolation<ExpBlueprint> v : violations) {
-                LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
-            }
-            throw new ValidationException();
-        }
-        expb.isValid();
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(expb));
-    }
-
-    private static void validateTcB(InputStream is)
-            throws ValidationException, IOException, MalformattedElementException {
-        TestCaseBlueprint tcb = OBJECT_MAPPER.readValue(is, TestCaseBlueprint.class);
-        Set<ConstraintViolation<TestCaseBlueprint>> violations = VALIDATOR.validate(tcb);
-        if (!violations.isEmpty()) {
-            for (ConstraintViolation<TestCaseBlueprint> v : violations) {
-                LOG.error("Violation: property \'{}\' {}", v.getPropertyPath(), v.getMessage());
-            }
-            throw new ValidationException();
-        }
-        tcb.isValid();
-        LOG.debug("Dump:\n{}", OBJECT_MAPPER.writeValueAsString(tcb));
+        b.isValid();
     }
 
     @Override
-    public void run(String... args) throws Exception {
-        YAMLFactory yamlFactory = new YAMLFactory();
-        yamlFactory.configure(Feature.SPLIT_LINES, false);
-        OBJECT_MAPPER = new ObjectMapper(yamlFactory);
-        OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+    public void run(String... args) {
+        Y_OBJECT_MAPPER = new ObjectMapper(new YAMLFactory().configure(Feature.SPLIT_LINES, false))
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+        J_OBJECT_MAPPER = new ObjectMapper(new JsonFactory()).enable(SerializationFeature.INDENT_OUTPUT);
 
         ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
         VALIDATOR = factory.getValidator();
@@ -142,33 +120,39 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         Namespace ns = parseArguments(args);
         LOG.info("Validating file {}", ns.getString("file"));
         try (InputStream is = Files.newInputStream(Paths.get(ns.getString("file")))) {
-            switch (ns.getString("type")) {
-                case "vsb":
+            JsonNode rootNode = Y_OBJECT_MAPPER.readTree(is);
+            switch ((TYPE) ns.get("type")) {
+                case vsb:
                     LOG.info("Selected type: Vertical Service Blueprint");
-                    validateVSB(is);
+                    validate(rootNode.toString(), VsBlueprint.class, ns.getBoolean("schema"));
                     break;
-                case "ctx":
+                case ctx:
                     LOG.info("Selected type: Context Blueprint");
-                    validateCtx(is);
+                    validate(rootNode.toString(), CtxBlueprint.class, ns.getBoolean("schema"));
                     break;
-                case "expb":
+                case expb:
                     LOG.info("Selected type: Experiment Blueprint");
-                    validateExpB(is);
+                    validate(rootNode.toString(), ExpBlueprint.class, ns.getBoolean("schema"));
                     break;
-                case "tcb":
+                case tcb:
                     LOG.info("Selected type: Test Case Blueprint");
-                    validateTcB(is);
+                    validate(rootNode.toString(), TestCaseBlueprint.class, ns.getBoolean("schema"));
+                    break;
+                case nsd:
+                    LOG.info("Selected type: Network Service Descriptor");
+                    validate(rootNode.get(0).toString(), Nsd.class, ns.getBoolean("schema"));
                     break;
             }
             LOG.info("Validation success");
-        } catch (MismatchedInputException e) {
+        } catch (JsonParseException | JsonMappingException e) {
             LOG.error(e.getOriginalMessage());
-            LOG.error("Error at line {}, column {} of YAML file", e.getLocation().getLineNr(),
-                    e.getLocation().getColumnNr());
-            LOG.error("Validation failed");
-        } catch (ValidationException | MalformattedElementException e) {
+            LOG.error("Error at line {}, column {}", e.getLocation().getLineNr(), e.getLocation().getColumnNr());
+        } catch (ViolationException e) {
+            for (String v : e.getViolationMessages()) {
+                LOG.error(v);
+            }
+        } catch (MalformattedElementException e) {
             LOG.error(e.getMessage());
-            LOG.error("Validation failed");
         } catch (IOException e) {
             LOG.error("Can't read input file {}", e.getMessage());
         }
