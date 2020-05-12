@@ -44,3 +44,5 @@ build/
 
 # hibernate-validator
 .attach_pid*
+
+/mvn-release.sh
