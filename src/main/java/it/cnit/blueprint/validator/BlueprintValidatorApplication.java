@@ -121,6 +121,9 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         LOG.info("Validating file {}", ns.getString("file"));
         try (InputStream is = Files.newInputStream(Paths.get(ns.getString("file")))) {
             JsonNode rootNode = Y_OBJECT_MAPPER.readTree(is);
+            if (!rootNode.isObject()){
+              throw new IOException("Not a JSON object. Please remove array (-) if present.");
+            }
             switch ((TYPE) ns.get("type")) {
                 case vsb:
                     LOG.info("Selected type: Vertical Service Blueprint");
@@ -140,7 +143,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
                     break;
                 case nsd:
                     LOG.info("Selected type: Network Service Descriptor");
-                    validate(rootNode.get(0).toString(), Nsd.class, ns.getBoolean("schema"));
+                    validate(rootNode.toString(), Nsd.class, ns.getBoolean("schema"));
                     break;
             }
             LOG.info("Validation success");
@@ -154,7 +157,7 @@ public class BlueprintValidatorApplication implements CommandLineRunner {
         } catch (MalformattedElementException e) {
             LOG.error(e.getMessage());
         } catch (IOException e) {
-            LOG.error("Can't read input file {}", e.getMessage());
+            LOG.error("Can't read input file. {}", e.getMessage());
         }
     }
 }
